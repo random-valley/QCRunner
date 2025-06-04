@@ -64,11 +64,17 @@ struct QCRunnerApp: App {
     
     fileprivate func makeQCPipeline() -> FrameAnalysisService {
         let pipelineBuilder = DownselectionPipelineBuilder(graphics: GraphicsContextModule().component(), logger: self.logger)
-        pipelineBuilder.checkLaplacianSharpness(laplacianLowerBound: -.infinity, laplacianUpperBound: .infinity)
+        pipelineBuilder.checkAllFramesAreUnique()
         pipelineBuilder.checkBlueDominatedPixels(populationRatioIsBelowThreshold: -.infinity)
+        pipelineBuilder.checkFrameBarcodeContrast(codecontrastLowerBound: -.infinity, codecontrastUpperBound: .infinity)
+        pipelineBuilder.checkFrameBarcodeEdges(edgesLowerBound: -.infinity, edgesUpperBound: .infinity)
         pipelineBuilder.checkFrameBrightness(isAboveThreshold: -.infinity)
         pipelineBuilder.checkFrameContrast(lowerBound: -.infinity, upperBound: .infinity, channel: .Green)
+        pipelineBuilder.checkFrameMinContrast(minContrastLowerBound: -.infinity, minContrastUpperBound: .infinity)
+        pipelineBuilder.checkFrameRegionalContrast(regionalLowerBound: -.infinity, regionalUpperBound: .infinity)
         pipelineBuilder.checkFrameSharpness(sharpnessLowerBound: -.infinity, sharpnessUpperBound: .infinity, params: [:])
+        pipelineBuilder.checkLaplacianSharpness(laplacianLowerBound: -.infinity, laplacianUpperBound: .infinity)
+        pipelineBuilder.checkSpecularReflection(speckleLowerBound: -.infinity, speckleUpperBound: .infinity)
         return pipelineBuilder.build()
     }
     
