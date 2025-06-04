@@ -85,10 +85,10 @@ struct QCRunnerApp: App {
     func calculateQCScores(forDataIn inputPath: URL, andOutputTo outputPath: URL) async throws {
         let run = self.runQC(onFilePath:)
         
-        let imageURLs = try FileManager.default.subpathsOfDirectory(atPath: inputPath.absoluteString).filter{
+        let imageURLs = try FileManager.default.subpathsOfDirectory(atPath: inputPath.path(percentEncoded: false)).filter{
             path in
             path.hasSuffix(".json") == false && path.contains("baseframe") && path.contains("calibration") == false && path.contains("material") == false
-        }.map{ path in NSURL(fileURLWithPath: inputPath.appending(path: path.description).absoluteString) as URL }
+        }.map{ path in NSURL(fileURLWithPath: inputPath.appending(path: path.description).path(percentEncoded: false)) as URL }
         
         var qcResults = [ [String: String] ]()
         for url in imageURLs {
@@ -98,7 +98,7 @@ struct QCRunnerApp: App {
                 for key in result.keys{
                     reformatedResults[key.rawValue] = result[key]![0].description
                 }
-                reformatedResults["filepath"] = url.lastPathComponent
+                reformatedResults["filepath"] = url.path(percentEncoded: false)
                 qcResults.append(reformatedResults)
             } catch {
                 print("\(error) whilst running QC for \(url)")
