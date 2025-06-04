@@ -6,23 +6,33 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		25147D0F2DEDB8FB00F62D42 /* QIDOAppKit in Frameworks */ = {isa = PBXBuildFile; productRef = 25147D0E2DEDB8FB00F62D42 /* QIDOAppKit */; };
+		25147D112DEDB8FB00F62D42 /* QIDOLib in Frameworks */ = {isa = PBXBuildFile; productRef = 25147D102DEDB8FB00F62D42 /* QIDOLib */; };
+		25147D132DEDB8FB00F62D42 /* QIDOSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 25147D122DEDB8FB00F62D42 /* QIDOSDK */; };
+		25AFE0232DEEF021008A776D /* QCRunnerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25AFE0212DEEF021008A776D /* QCRunnerApp.swift */; };
+		25AFE0242DEEF021008A776D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25AFE01F2DEEF021008A776D /* ContentView.swift */; };
+		25AFE0252DEEF021008A776D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 25AFE01E2DEEF021008A776D /* Assets.xcassets */; };
+		25AFE0282DEEF032008A776D /* NC01ReferenceCropper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25AFE0272DEEF032008A776D /* NC01ReferenceCropper.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		25147CF52DEDB85600F62D42 /* QCRunner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QCRunner.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		25AFE01E2DEEF021008A776D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		25AFE01F2DEEF021008A776D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		25AFE0202DEEF021008A776D /* QCRunner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = QCRunner.entitlements; sourceTree = "<group>"; };
+		25AFE0212DEEF021008A776D /* QCRunnerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QCRunnerApp.swift; sourceTree = "<group>"; };
+		25AFE0272DEEF032008A776D /* NC01ReferenceCropper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NC01ReferenceCropper.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
-
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		25147CF72DEDB85600F62D42 /* QCRunner */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = QCRunner;
-			sourceTree = "<group>";
-		};
-/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		25147CF22DEDB85600F62D42 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				25147D132DEDB8FB00F62D42 /* QIDOSDK in Frameworks */,
+				25147D0F2DEDB8FB00F62D42 /* QIDOAppKit in Frameworks */,
+				25147D112DEDB8FB00F62D42 /* QIDOLib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -32,7 +42,7 @@
 		25147CEC2DEDB85600F62D42 = {
 			isa = PBXGroup;
 			children = (
-				25147CF72DEDB85600F62D42 /* QCRunner */,
+				25AFE0222DEEF021008A776D /* QCRunner */,
 				25147CF62DEDB85600F62D42 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -43,6 +53,26 @@
 				25147CF52DEDB85600F62D42 /* QCRunner.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		25AFE0222DEEF021008A776D /* QCRunner */ = {
+			isa = PBXGroup;
+			children = (
+				25AFE0262DEEF026008A776D /* Croppers */,
+				25AFE01E2DEEF021008A776D /* Assets.xcassets */,
+				25AFE01F2DEEF021008A776D /* ContentView.swift */,
+				25AFE0202DEEF021008A776D /* QCRunner.entitlements */,
+				25AFE0212DEEF021008A776D /* QCRunnerApp.swift */,
+			);
+			path = QCRunner;
+			sourceTree = "<group>";
+		};
+		25AFE0262DEEF026008A776D /* Croppers */ = {
+			isa = PBXGroup;
+			children = (
+				25AFE0272DEEF032008A776D /* NC01ReferenceCropper.swift */,
+			);
+			path = Croppers;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -60,11 +90,11 @@
 			);
 			dependencies = (
 			);
-			fileSystemSynchronizedGroups = (
-				25147CF72DEDB85600F62D42 /* QCRunner */,
-			);
 			name = QCRunner;
 			packageProductDependencies = (
+				25147D0E2DEDB8FB00F62D42 /* QIDOAppKit */,
+				25147D102DEDB8FB00F62D42 /* QIDOLib */,
+				25147D122DEDB8FB00F62D42 /* QIDOSDK */,
 			);
 			productName = QCRunner;
 			productReference = 25147CF52DEDB85600F62D42 /* QCRunner.app */;
@@ -94,6 +124,9 @@
 			);
 			mainGroup = 25147CEC2DEDB85600F62D42;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				25147D0D2DEDB8FB00F62D42 /* XCLocalSwiftPackageReference "../QIDO-iOS/iosapp/QIDOSDK/QIDOLib" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 25147CF62DEDB85600F62D42 /* Products */;
 			projectDirPath = "";
@@ -109,6 +142,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				25AFE0252DEEF021008A776D /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +153,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				25AFE0232DEEF021008A776D /* QCRunnerApp.swift in Sources */,
+				25AFE0282DEEF032008A776D /* NC01ReferenceCropper.swift in Sources */,
+				25AFE0242DEEF021008A776D /* ContentView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -263,7 +300,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.4;
@@ -272,7 +309,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
@@ -302,7 +339,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.4;
@@ -311,7 +348,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
@@ -341,6 +378,28 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		25147D0D2DEDB8FB00F62D42 /* XCLocalSwiftPackageReference "../QIDO-iOS/iosapp/QIDOSDK/QIDOLib" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../QIDO-iOS/iosapp/QIDOSDK/QIDOLib";
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		25147D0E2DEDB8FB00F62D42 /* QIDOAppKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = QIDOAppKit;
+		};
+		25147D102DEDB8FB00F62D42 /* QIDOLib */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = QIDOLib;
+		};
+		25147D122DEDB8FB00F62D42 /* QIDOSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = QIDOSDK;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 25147CED2DEDB85600F62D42 /* Project object */;
 }
