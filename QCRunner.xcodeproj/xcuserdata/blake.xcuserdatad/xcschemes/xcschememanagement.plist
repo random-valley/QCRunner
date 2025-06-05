@@ -7,7 +7,12 @@
 		<key>JWTDecode (Playground).xcscheme</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>4</integer>
+			<integer>5</integer>
+		</dict>
+		<key>QCRunner Release.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>3</integer>
 		</dict>
 		<key>QCRunner.xcscheme_^#shared#^_</key>
 		<dict>

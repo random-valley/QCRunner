@@ -17,10 +17,16 @@ import QIDOTags
 @main
 struct QCRunnerApp: App {
     let logger = LoggerModule().component(name: "QCRunner")
+    let profilingLogger = LoggerModule().component(name: "Profiling")
+    var contentView = ContentView()
+    
+    var progressUpdater: ((Int)->Void)?
+    var progressTotalUpdater: ((Int)->Void)?
+    var viewPathUpdater: ((String)->Void)?
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            contentView
         }
     }
     
@@ -88,17 +94,32 @@ struct QCRunnerApp: App {
         return pipeline.generateReport()
     }
     
+    mutating func updateTotal(to newTotal: Int){ contentView.updateTotal(to: newTotal)}
+    mutating func updatePath(to newPath: String){ contentView.updatePath(to: newPath)}
+    mutating func updateCurrentPlace(to newValue: Int){ contentView.updateCurrentPlace(to: newValue)}
+    
     func calculateQCScores(forDataIn inputPath: URL, andOutputTo outputPath: URL) async throws {
         let run = self.runQC(onFilePath:)
         
         let imageURLs = try FileManager.default.subpathsOfDirectory(atPath: inputPath.path(percentEncoded: false)).filter{
             path in
-            path.hasSuffix(".json") == false && path.contains("baseframe") && path.contains("calibration") == false && path.contains("material") == false
+            path.hasSuffix(".json") == false && path.contains("baseframe") && path.contains("calibration") == false && path.contains("material") == false && path.contains("Q0a") == false
         }.map{ path in NSURL(fileURLWithPath: inputPath.appending(path: path.description).path(percentEncoded: false)) as URL }
         
         var qcResults = [ [String: String] ]()
-        for url in imageURLs {
+        
+        progressTotalUpdater?(imageURLs.count)
+        
+        let startTime = Date.timeIntervalSinceReferenceDate
+        var startTimeFrame = Date.timeIntervalSinceReferenceDate
+        var endTimeFrame = Date.timeIntervalSinceReferenceDate
+        var averageTimePerFrame = 1.0
+        var estTimeRemaining = 1.0
+        
+        for (i, url) in imageURLs.enumerated() {
+            
             do {
+                startTimeFrame = Date.timeIntervalSinceReferenceDate
                 let result = try await run(url)
                 var reformatedResults = [String: String]()
                 for key in result.keys{
@@ -106,6 +127,11 @@ struct QCRunnerApp: App {
                 }
                 reformatedResults["filepath"] = url.path(percentEncoded: false)
                 qcResults.append(reformatedResults)
+                
+                endTimeFrame = Date.timeIntervalSinceReferenceDate
+                averageTimePerFrame = (Date.timeIntervalSinceReferenceDate - startTime) / Double(i+1)
+                estTimeRemaining = averageTimePerFrame * Double(imageURLs.count - i - 1)
+                profilingLogger.info("[Profiling] Completed run \(i)/\(imageURLs.count) in \(endTimeFrame - startTimeFrame) s --- est time remaining: \( Int(estTimeRemaining / 60) ) mins")
             } catch {
                 print("\(error) whilst running QC for \(url)")
             }
@@ -133,10 +159,11 @@ struct QCRunnerApp: App {
     
     
     init() {
-        let csvOutputPath = URL(string: "/Users/blake/Desktop/example.txt")!
-        let dataInputPath = URL(string: "/Users/blake/Downloads/iP14_NC01&02_C29_sanity_check/SA1E-real-on-product")!
+        let csvOutputPath = URL(string: "/Users/blake/Desktop/example.csv")!
+        let dataInputPath = URL(string: "/Volumes/NAS2Fast/QB datasets/Store/Sorted data/Apple/iPhone 13")!
         let funcToRun = calculateQCScores(forDataIn: andOutputTo:)
         let startSDK = sdkStart
+    
         Task {
             do {
                 await startSDK()
@@ -150,21 +177,4 @@ struct QCRunnerApp: App {
     fileprivate func makeTagDesignDescriptionForNC01() -> TagDesignDescription {
         return .init(identityAreaHeightInMM: 7, trackingMarkerWidthInMM: 8.5, referenceAreaLeftCornerInBaseFrame: .init(x: 0.13, y: 0.75), baseframeWidthInMM: 15, trackerLeftCornerInBaseFrame: .init(x: 0.299, y: 0.55), identityAreaWidthInMM: 7.59, trackingMarkerHeightInMM: 6.5, createdAt: "", referenceAreaWidthInMM: 2.5, carrierHeightInMM: 28, carrierWidthInMM: 13, baseframeHeightInMM: 28, identityAreaMinimumResolutionForID: .init(height: 150, width: 150), formatId: "NC01", updatedAt: "", referenceAreaHeightInMM: 10, id: "NC01", identityAreaInsetCropAmount: .init(height: 0.4, width: 0.9), identityAreaPositionRelativeToTrackingMarkerBottomLeftCorner: .init(x: 0, y: 0), printDriftInMM: .init(x: 0, y: 0))
     }
-        
-
-//    func example () {
-//        
-//        // create a String with the table
-//        
-//        let s = String("")
-//        
-//        // turn String into Data
-//        let data = s.data(using: .utf8)
-//        
-//        // Write data to URL on disk
-//        let savePath = URL(string: "/Users/blake/Desktop/example.txt")!
-//        do {
-//            try s.write(to: savePath, atomically: true, encoding: .utf8)
-//        } catch {print(error)}
-//    }
 }
