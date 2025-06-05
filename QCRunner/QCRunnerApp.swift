@@ -13,22 +13,38 @@ import QIDOModels
 import QIDOUtils
 import QIDOScanner
 import QIDOTags
+import QIDOFrameStream
 
 @main
 struct QCRunnerApp: App {
-    let logger = LoggerModule().component(name: "QCRunner")
-    let profilingLogger = LoggerModule().component(name: "Profiling")
     var contentView = ContentView()
-    
-    var progressUpdater: ((Int)->Void)?
-    var progressTotalUpdater: ((Int)->Void)?
-    var viewPathUpdater: ((String)->Void)?
+    var runner = QCRunner()
     
     var body: some Scene {
         WindowGroup {
             contentView
+            Button("Start", action: runner.run)
         }
     }
+}
+
+class QCRunner {
+    let logger = LoggerModule().component(name: "QCRunner")
+    let profilingLogger = LoggerModule().component(name: "Profiling")
+
+    
+    var progressUpdater: ((Int)->Void)?
+    var progressTotalUpdater: ((Int)->Void)?
+    var viewPathUpdater: ((String)->Void)?
+        
+    var analysisFrameMaker: ((CIImage, Logger) async throws -> AnalysisFrame)
+    var framePathFilter: ((String)->Bool)
+    
+    lazy var qcPipeline: FrameAnalysisService = {
+        makeQCPipeline(withLogger: self.logger)
+    }()
+    
+ 
     
     fileprivate func sdkStart() async {
         typealias ConfigHandler = ((inout QIDOSDKStartConfigurations) -> Void)
@@ -49,27 +65,8 @@ struct QCRunnerApp: App {
         })
     }
     
-    fileprivate func makeAnalysisFrame(fromBaseframe baseframe: CIImage) async throws -> AnalysisFrame {
-        let tagDesign = makeTagDesignDescriptionForNC01()
-        let patchCropper = NC01PatchCropOperation(barcodeAnchorX: 0.1333, barcodeAnchorY: 0.75, xDirection: .plus, yDirection: .plus, xRatio: 0.5066666666, yRatio: 0.25, widthInset: 0.9, heightInset: 0.4)
-        let refCropper = NC01CompositeReferenceRegionCropper()
-        let barcodeCropper = DataMatrixBarcodeCroppingOperation(tag: tagDesign, logger: self.logger, dataMatrixOrientation: .upright, payloadSearchString: "")
-        
-        // crop ref from baseframe
-        let ref = try refCropper.execute(onBaseframe: baseframe)
-        // crop patch from baseframe
-        let patch = try patchCropper.execute(onBaseframeRegion: baseframe)
-        // crop barcode from baseframe
-//        let barcode = try await barcodeCropper.execute(on: baseframe)
-        // generate dummy QRCode data
-        let qrCode = QRCode(payload: "some_payload")
-        let cameraSettings = CameraSettings(whiteBalanceMode: .automatic, exposureMode: .automatic, torchMode: .off)
-        
-        return .init(uuid: UUID(), baseframe: baseframe, referenceRegion: ref, quantumPatchRegion: patch, barcodeRegion: baseframe, settingsAtCapture: cameraSettings, qrCode: qrCode)
-    }
-    
-    fileprivate func makeQCPipeline() -> FrameAnalysisService {
-        let pipelineBuilder = DownselectionPipelineBuilder(graphics: GraphicsContextModule().component(), logger: self.logger)
+    fileprivate func makeQCPipeline(withLogger logger: Logger) -> FrameAnalysisService {
+        let pipelineBuilder = DownselectionPipelineBuilder(graphics: GraphicsContextModule().component(), logger: logger)
         pipelineBuilder.checkAllFramesAreUnique()
         pipelineBuilder.checkBlueDominatedPixels(populationRatioIsBelowThreshold: -.infinity)
         pipelineBuilder.checkFrameBarcodeContrast(codecontrastLowerBound: -.infinity, codecontrastUpperBound: .infinity)
@@ -86,29 +83,26 @@ struct QCRunnerApp: App {
     
     fileprivate func runQC(onFilePath imageURL: URL) async throws -> [FrameAnalysisOperationName : [Double]] {
         let image = CIImage(contentsOf: imageURL)!
-        let frame = try await makeAnalysisFrame(fromBaseframe: image)
-        let pipeline = makeQCPipeline()
+        let frame = try await analysisFrameMaker(image, self.logger)
         do {
-            try _ = pipeline.run(on: [frame])
+            try _ = qcPipeline.run(on: [frame])
         } catch {}
-        return pipeline.generateReport()
+        return qcPipeline.generateReport()
     }
     
-    mutating func updateTotal(to newTotal: Int){ contentView.updateTotal(to: newTotal)}
-    mutating func updatePath(to newPath: String){ contentView.updatePath(to: newPath)}
-    mutating func updateCurrentPlace(to newValue: Int){ contentView.updateCurrentPlace(to: newValue)}
+//    mutating func updateTotal(to newTotal: Int){ contentView.updateTotal(to: newTotal)}
+//    mutating func updatePath(to newPath: String){ contentView.updatePath(to: newPath)}
+//    mutating func updateCurrentPlace(to newValue: Int){ contentView.updateCurrentPlace(to: newValue)}
     
     func calculateQCScores(forDataIn inputPath: URL, andOutputTo outputPath: URL) async throws {
         let run = self.runQC(onFilePath:)
         
-        let imageURLs = try FileManager.default.subpathsOfDirectory(atPath: inputPath.path(percentEncoded: false)).filter{
-            path in
-            path.hasSuffix(".json") == false && path.contains("baseframe") && path.contains("calibration") == false && path.contains("material") == false && path.contains("Q0a") == false
-        }.map{ path in NSURL(fileURLWithPath: inputPath.appending(path: path.description).path(percentEncoded: false)) as URL }
+        let imageURLs = try FileManager.default.subpathsOfDirectory(atPath: inputPath.path(percentEncoded: false))
+            .map{path in inputPath.appending(path: path.description).path(percentEncoded: false)}
+            .filter{ path in framePathFilter(path) }
+            .map{ path in NSURL(fileURLWithPath: path) as URL}
         
         var qcResults = [ [String: String] ]()
-        
-        progressTotalUpdater?(imageURLs.count)
         
         let startTime = Date.timeIntervalSinceReferenceDate
         var startTimeFrame = Date.timeIntervalSinceReferenceDate
@@ -158,12 +152,12 @@ struct QCRunnerApp: App {
     }
     
     
-    init() {
+    fileprivate func run() {
         let csvOutputPath = URL(string: "/Users/blake/Desktop/example.csv")!
-        let dataInputPath = URL(string: "/Volumes/NAS2Fast/QB datasets/Store/Sorted data/Apple/iPhone 13")!
+        let dataInputPath = URL(string: "/Volumes/NAS2Fast/QB datasets/Store/Sorted data/Apple/iPhone 16")!
         let funcToRun = calculateQCScores(forDataIn: andOutputTo:)
         let startSDK = sdkStart
-    
+        
         Task {
             do {
                 await startSDK()
@@ -174,7 +168,75 @@ struct QCRunnerApp: App {
         }
     }
     
-    fileprivate func makeTagDesignDescriptionForNC01() -> TagDesignDescription {
-        return .init(identityAreaHeightInMM: 7, trackingMarkerWidthInMM: 8.5, referenceAreaLeftCornerInBaseFrame: .init(x: 0.13, y: 0.75), baseframeWidthInMM: 15, trackerLeftCornerInBaseFrame: .init(x: 0.299, y: 0.55), identityAreaWidthInMM: 7.59, trackingMarkerHeightInMM: 6.5, createdAt: "", referenceAreaWidthInMM: 2.5, carrierHeightInMM: 28, carrierWidthInMM: 13, baseframeHeightInMM: 28, identityAreaMinimumResolutionForID: .init(height: 150, width: 150), formatId: "NC01", updatedAt: "", referenceAreaHeightInMM: 10, id: "NC01", identityAreaInsetCropAmount: .init(height: 0.4, width: 0.9), identityAreaPositionRelativeToTrackingMarkerBottomLeftCorner: .init(x: 0, y: 0), printDriftInMM: .init(x: 0, y: 0))
+    init() {
+        self.analysisFrameMaker = makeQ0aAnalysisFrame(fromBaseframe: withLogger:)
+        self.framePathFilter = pathFilter(path:)
     }
+}
+
+
+// Path filters
+func pathFilter(path: String) -> Bool{
+    if path.hasSuffix(".json") { return false }
+    if path.contains("baseframe") == false { return false }
+    if path.contains("calibration") == true { return false }
+    if path.contains("material") == true { return false }
+    if path.contains("Q0a") == false { return false}
+    return true
+}
+
+
+// Tag design creation functions
+
+fileprivate func makeTagDesignDescriptionForNC01() -> TagDesignDescription {
+    return .init(identityAreaHeightInMM: 7, trackingMarkerWidthInMM: 8.5, referenceAreaLeftCornerInBaseFrame: .init(x: 0.13, y: 0.75), baseframeWidthInMM: 15, trackerLeftCornerInBaseFrame: .init(x: 0.299, y: 0.55), identityAreaWidthInMM: 7.59, trackingMarkerHeightInMM: 6.5, createdAt: "", referenceAreaWidthInMM: 2.5, carrierHeightInMM: 28, carrierWidthInMM: 13, baseframeHeightInMM: 28, identityAreaMinimumResolutionForID: .init(height: 150, width: 150), formatId: "NC01", updatedAt: "", referenceAreaHeightInMM: 10, id: "NC01", identityAreaInsetCropAmount: .init(height: 0.4, width: 0.9), identityAreaPositionRelativeToTrackingMarkerBottomLeftCorner: .init(x: 0, y: 0), printDriftInMM: .init(x: 0, y: 0))
+}
+
+fileprivate func makeTagDesignDescriptionForQ0a() -> TagDesignDescription {
+    return .init(identityAreaHeightInMM: 12, trackingMarkerWidthInMM: 7, referenceAreaLeftCornerInBaseFrame: .init(x: 0, y: 0), baseframeWidthInMM: 16, trackerLeftCornerInBaseFrame: .init(x: 0.28499999999, y: 0.714999999999), identityAreaWidthInMM: 12, trackingMarkerHeightInMM: 7, createdAt: "", referenceAreaWidthInMM: 16, carrierHeightInMM: 16, carrierWidthInMM: 16, baseframeHeightInMM: 16, identityAreaMinimumResolutionForID: .init(height: 260, width: 260), formatId: "Q0a", updatedAt: "", referenceAreaHeightInMM: 16, id: "Q0a", identityAreaInsetCropAmount: .init(height: 0, width: 0), identityAreaPositionRelativeToTrackingMarkerBottomLeftCorner: .init(x: 0, y: 0), printDriftInMM: .init(x: 0.5, y: 0.5))
+}
+
+
+// Analysis Frame creation functions
+
+public func qrDetector() -> CIDetector? {
+    return CIDetector(ofType: CIDetectorTypeQRCode, context: GraphicsContextModule().component().context, options: [CIDetectorAccuracy: CIDetectorAccuracyHigh])
+}
+
+fileprivate func makeQ0aAnalysisFrame(fromBaseframe baseframe: CIImage, withLogger logger: Logger) async throws -> AnalysisFrame {
+    let tagDesign = makeTagDesignDescriptionForQ0a()
+    let patchCropper = InsetBarcodeLayoutCompositePatchRegionCropper(tagDesign)
+    let refCropper = InsetBarcodeLayoutCompositeReferenceRegionCropper(tagDesign)
+    let barcodeCropper = QRCodeBarcodeCroppingOperation(detector: qrDetector(), logger: logger)
+    
+    // crop ref from baseframe
+    let ref = try refCropper.execute(onBaseframe: baseframe)
+    // crop patch from baseframe
+    let patch = try patchCropper.execute(onBaseframeRegion: baseframe)
+    // crop barcode from baseframe
+    let barcode = try await barcodeCropper.execute(on: baseframe)
+    // generate dummy QRCode data
+    let qrCode = QRCode(payload: "some_payload")
+    let cameraSettings = CameraSettings(whiteBalanceMode: .automatic, exposureMode: .automatic, torchMode: .off)
+    
+    return .init(uuid: UUID(), baseframe: baseframe, referenceRegion: ref, quantumPatchRegion: patch, barcodeRegion: barcode, settingsAtCapture: cameraSettings, qrCode: qrCode)
+}
+
+fileprivate func makeNC01AnalysisFrame(fromBaseframe baseframe: CIImage, withLogger logger: Logger) async throws -> AnalysisFrame {
+    let tagDesign = makeTagDesignDescriptionForNC01()
+    let patchCropper = NC01PatchCropOperation(barcodeAnchorX: 0.1333, barcodeAnchorY: 0.75, xDirection: .plus, yDirection: .plus, xRatio: 0.5066666666, yRatio: 0.25, widthInset: 0.9, heightInset: 0.4)
+    let refCropper = NC01CompositeReferenceRegionCropper()
+//    let barcodeCropper = DataMatrixBarcodeCroppingOperation(tag: tagDesign, logger: logger, dataMatrixOrientation: .upright, payloadSearchString: "")
+    
+    // crop ref from baseframe
+    let ref = try refCropper.execute(onBaseframe: baseframe)
+    // crop patch from baseframe
+    let patch = try patchCropper.execute(onBaseframeRegion: baseframe)
+    // crop barcode from baseframe
+//        let barcode = try await barcodeCropper.execute(on: baseframe)
+    // generate dummy QRCode data
+    let qrCode = QRCode(payload: "some_payload")
+    let cameraSettings = CameraSettings(whiteBalanceMode: .automatic, exposureMode: .automatic, torchMode: .off)
+    
+    return .init(uuid: UUID(), baseframe: baseframe, referenceRegion: ref, quantumPatchRegion: patch, barcodeRegion: baseframe, settingsAtCapture: cameraSettings, qrCode: qrCode)
 }
